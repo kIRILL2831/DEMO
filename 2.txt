@@ -1,0 +1,49 @@
+
+CREATE TABLE dbo.Role
+(
+    Id    INT IDENTITY(1,1) NOT NULL,   -- первичный ключ, автоинкремент
+    Title NVARCHAR(100)     NOT NULL    -- название роли (например, "Admin", "User")
+    CONSTRAINT PK_Role PRIMARY KEY CLUSTERED (Id)
+);
+GO
+
+CREATE TABLE dbo.Users
+(
+    Id         INT IDENTITY(1,1) NOT NULL,   -- первичный ключ
+    RoleID     INT               NOT NULL,   -- внешний ключ на Role.Id
+    Login      NVARCHAR(50)      NOT NULL,   -- логин пользователя
+    Password   NVARCHAR(255)     NOT NULL,   -- пароль (рекомендуется хранить хеш)
+    is_blocked BIT               NOT NULL CONSTRAINT DF_Users_is_blocked DEFAULT (0), -- заблокирован? (0 = нет, 1 = да)
+    attemps    INT               NULL,       -- количество неудачных попыток входа (может быть NULL)
+    CONSTRAINT PK_Users PRIMARY KEY CLUSTERED (Id)
+);
+GO
+
+-- Уникальность логина (чтобы не было двух одинаковых логинов)
+CREATE UNIQUE NONCLUSTERED INDEX UQ_Users_Login ON dbo.Users(Login);
+GO
+
+-- Внешний ключ: связь Users.RoleID -> Role.Id
+ALTER TABLE dbo.Users
+    ADD CONSTRAINT FK_Users_Role FOREIGN KEY (RoleID)
+    REFERENCES dbo.Role (Id)
+    ON DELETE NO ACTION    -- запрещаем удаление роли, если есть пользователи
+    ON UPDATE NO ACTION;
+GO
+
+-- ============================================
+-- Необязательно: вставка начальных данных (пример)
+-- ============================================
+INSERT INTO dbo.Role (Title) VALUES ('Admin'), ('User');
+GO
+
+-- Пример пользователя (пароль в реальности должен быть хеширован)
+INSERT INTO dbo.Users (RoleID, Login, Password, is_blocked, attemps)
+VALUES 
+    (1, 'admin', 'admin123', 0, 0),
+    (2, 'user1', 'user123', 0, NULL);
+GO
+
+-- Проверка данных
+-- SELECT * FROM dbo.Role;
+-- SELECT * FROM dbo.Users;
